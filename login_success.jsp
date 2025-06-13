@@ -143,7 +143,7 @@ try (
                         Class.forName("org.mariadb.jdbc.Driver");
                         try (
                             Connection con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/memodb", "admin", "1234");
-                            PreparedStatement pstmt = con.prepareStatement("SELECT idx, title, is_important FROM memo WHERE list_idx = ? ORDER BY idx DESC")
+                            PreparedStatement pstmt = con.prepareStatement("SELECT idx, title, is_important, created_at FROM memo WHERE list_idx = ? ORDER BY idx DESC")
                             ) {
                                 pstmt.setInt(1, Integer.parseInt(selectedCategoryId_str));               
                                 try (ResultSet rs = pstmt.executeQuery()) {
@@ -151,12 +151,14 @@ try (
                                     out.println("<div style='color: #888; padding: 5px 10px;'>메모가 없습니다.</div>");
                                 } else {
                                     while (rs.next()) {
-                                        String importantMark = "Y".equals(rs.getString("is_important")) ? "⭐" : "";
                                         int memoId = rs.getInt("idx");
+                                        String importantMark = "Y".equals(rs.getString("is_important")) ? "⭐" : "";
                                         String selectedMemoClass = (selectedMemoId_str != null && memoId == Integer.parseInt(selectedMemoId_str)) ? "selected" : "";
+                                        String title = rs.getString("title");
+                                        String createdAt = rs.getString("created_at");
                     %>
                     <a href="login_success.jsp?categoryId=<%=selectedCategoryId_str%>&memoId=<%=memoId%>" class="memo_item <%= selectedMemoClass %>">
-                    <%= importantMark %> <%= rs.getString("title") %>
+                    [#<%=memoId%>]<%= importantMark %> <%= rs.getString("title") %><br><%=createdAt%>
                     </a>
                     <%
                         
@@ -216,7 +218,9 @@ try (
     boolean isEdit = (selectedMemoId_str != null && !selectedMemoId_str.isEmpty());
 %>
         <form name="memoForm" id="memoForm" class="center" action="add_memo_proc.jsp" method="POST" enctype="multipart/form-data">
-            <!--<input type="hidden" name="list_idx" id="selectedListIdx">-->
+            <% if(isEdit){ %>
+                <input type="hidden" name="list_idx" value="<%= selectedCategoryId_str %>">
+            <% } %>
             <input type="hidden" name="memoIdx" id="memoIdx" value="<%= selectedMemoId_str != null ? selectedMemoId_str : "" %>">
             <div class="note_header">
                 <input type="text" name="title" class="title_input" placeholder="제목을 입력하세요" value="<%= memoTitle %>">
@@ -230,24 +234,31 @@ try (
                     <select name="backgroundColor" id="memoColorSelect">
                         <option value="default" <%= "default".equals(memoBackgroundColor) ? "selected" : "" %>>기본</option>
                         <option value="skyBlue" <%= "skyBlue".equals(memoBackgroundColor) ? "selected" : "" %>>하늘색</option>
-                        <option value="Yellow"  <%= "Yellow".equals(memoBackgroundColor) ? "selected" : "" %>>노란색</option>
+                        <option value="Yellow"  <%= "Yellow".equals(memoBackgroundColor) ? "selected" : "" %>>흰색</option>
                     </select>
                 </label>
                 <label>카테고리:
-                    <select id="categorySelect" name="<%= isEdit ? "" : "list_idx" %>"<%= isEdit ? "disabled" : "" %>>
-                        <%
-                        for(String[] cat: categoryList){
-                            String idx=cat[0], name=cat[1];
-                            String sel = idx.equals(selectedCategoryId_str) ? "selected" : "";
-                            %>
-                            <option value="<%=idx%>" <%=sel%>><%=name%> (<%=cat[2]%>)</option>
-                            <%
-                        }
-                        %>
-                    </select>
-                </label>
+            <select
+                <%= isEdit ? "disabled" : "" %>
+                name="<%= isEdit ? "" : "list_idx" %>"
+                id="categorySelect"
+            >
+                <% for(String[] cat: categoryList){ 
+                    String idx=cat[0], name=cat[1], cnt=cat[2];
+                    String sel = idx.equals(selectedCategoryId_str)?"selected":"";
+                %>
+                    <option value="<%=idx%>" <%=sel%>>
+                    <%=name%> (<%=cnt%>)
+                    </option>
+                <% } %>
+            </select>
+        </label>
             </div>
-            <div class="note_body">
+            <div class="note_body" 
+                style="background-color: 
+                <%="skyBlue".equals(memoBackgroundColor) ? "#add8e6"
+                : "Yellow".equals(memoBackgroundColor) ? "#ffffff"
+                : "#fff8dc"%>;">
                 <textarea name="memo" placeholder="메모 내용을 입력하세요..."><%= memoContent %></textarea>
             </div>
             <div class="note_footer">
@@ -266,7 +277,7 @@ try (
         <div class="right">
             <button class="home_btn" onclick="location.href='login_success.jsp'">🏠 홈</button>
             <button id="addMemoBtn" type="button" class="memo_add_btn">➕ 새 메모 저장</button>
-            <button id="updateMemoBtn" class="memo_add_btn" style="display:none;">✏️ 메모 수정</button>
+            <button id="updateMemoBtn" type="button" class="memo_add_btn" style="display:none;">✏️ 메모 수정</button>
             <button id="deleteMemoBtn" class="delete_btn">🗑️ 삭제하기</button>
             <div class="quicknote">
                 <div class="quicknote_header">📌 간편 메모장</div>
@@ -312,6 +323,7 @@ document.getElementById('addMemoBtn')
 document.addEventListener('DOMContentLoaded', function(){
     const addBtn  = document.getElementById('addMemoBtn');
     const updBtn  = document.getElementById('updateMemoBtn');
+    upBtn.addEventListener('click',submitForm);
     const memoIdx=document.getElementById("memoIdx").value;
     if (memoIdx) {
         addBtn.style.display = 'none';

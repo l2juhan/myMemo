@@ -114,6 +114,20 @@
             color: #666666;
             margin: -5px 0 10px 0;
         }
+        .desc3 {
+            font-size: 12px;
+            color: #666666;
+            margin: -5px 0 10px 0;
+        }
+        .backToMemo{
+            cursor: pointer;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            font-size: 15px;
+            border: none;
+            border-radius: 3px;
+        }
     </style>
     <script>
         
@@ -151,6 +165,6 @@
 
         <input type="submit" value="이메일 및 비밀번호 변경하기">
     </form>
-
+    <button class="backToMemo"type="button" onclick="location.href='login_success.jsp'">메모페이지로 돌아가기</button>
 </body>
 </html>

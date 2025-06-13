@@ -1,6 +1,6 @@
 
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="java.sql.*, jakarta.servlet.http.*, java.io.File, java.util.UUID" %>
+<%@ page import="java.sql.*, jakarta.servlet.http.*, java.io.File, java.util.UUID, java.util.List, java.util.Arrays" %>
 <%
     request.setCharacterEncoding("UTF-8");
     
@@ -76,12 +76,15 @@
     ins.setString(1, title);
     ins.setString(2, memoContent);
     ins.setString(3, isImportant);
+    List<String> allowed = Arrays.asList("default","skyBlue","Yellow");
+    if (!allowed.contains(backgroundColor)) {
+        backgroundColor = "default";
+    }
     ins.setString(4, backgroundColor);
     ins.setString(5, savedFileName);
     ins.setInt(6, listIdx);
     ins.executeUpdate();
     }
 }
-response.sendRedirect("login_success.jsp?categoryId="+ listIdx
-  + (memoIdxStr!=null && !memoIdxStr.isEmpty() ? "memoId" + memoIdxStr : ""));
+response.sendRedirect("login_success.jsp?categoryId=" + listIdx +(memoIdxStr!=null && !memoIdxStr.isEmpty() ? "&memoId=" + memoIdxStr : ""));
 %>
