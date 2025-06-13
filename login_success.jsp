@@ -1,8 +1,8 @@
 <%@ page import="java.sql.*, java.text.SimpleDateFormat,java.util.ArrayList, java.util.List" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%
-    // --- 1. 기본 정보 및 파라미터 가져오기 ---
-    if (session.getAttribute("userId") == null) {
+    // 1. 기본 정보 및 파라미터 가져오기
+    if (session.getAttribute("userId") == null) { //혹시 모를 버그대비
         response.sendRedirect("login.jsp");
         return;
     }
@@ -10,36 +10,38 @@
     Integer memberIdx = (Integer) session.getAttribute("memberIdx");
     String selectedCategoryId_str = request.getParameter("categoryId");
     String selectedMemoId_str = request.getParameter("memoId");
-    //카테고리 목록 
-    List<String[]> categoryList=new ArrayList<>();
     
-    Connection con = null;
-    PreparedStatement pstmt = null;
-    ResultSet rs = null;
+    //카테고리 정보 가져오기
+List<String[]> categoryList = new ArrayList<>();
+int categoryCount=0;
+
+String sql =
+    "SELECT l.idx, l.listName, COUNT(m.idx) AS memo_count " +
+    "FROM list AS l " +
+    "LEFT JOIN memo AS m ON l.idx = m.list_idx " +
+    "WHERE l.member_idx = ? " +
+    "GROUP BY l.idx, l.listName " +
+    "ORDER BY l.listName";
+
+try (
+    Connection con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/memodb","admin","1234");
+    PreparedStatement pstmt = con.prepareStatement(sql)
+) {
     Class.forName("org.mariadb.jdbc.Driver");
-    con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/memodb", "admin", "1234");
-    try {
-    	String sql = "SELECT l.idx, l.listName, COUNT(m.idx) as memo_count " +
-                "FROM list AS l LEFT JOIN memo AS m ON l.idx = m.list_idx " +
-                "WHERE l.member_idx = ? " +
-                "GROUP BY l.idx, l.listName ORDER BY l.listName";
-        pstmt = con.prepareStatement(sql);
-        pstmt.setInt(1, memberIdx);
-        rs = pstmt.executeQuery();
-        while(rs.next()) {
-        	categoryList.add(new String[]{ 
-                    rs.getString("idx"), 
-                    rs.getString("listName"), 
-                    rs.getString("memo_count") 
-                });
+    pstmt.setInt(1, memberIdx);
+    try (ResultSet rs = pstmt.executeQuery()) {
+        while(rs.next()){
+            categoryList.add(new String[]{
+                rs.getString("idx"),
+                rs.getString("listName"),
+                rs.getString("memo_count")
+            });
         }
-    } catch (Exception e) {
-        e.printStackTrace();
-    } finally {
-        if (rs != null) try { rs.close(); } catch (Exception e) {}
-        if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
     }
-    
+    categoryCount = categoryList.size();
+} catch (Exception e) {
+    e.printStackTrace();
+}
 %>
 <!DOCTYPE html>
 <html lang="ko">
@@ -47,24 +49,25 @@
     <meta charset="UTF-8">
     <title>메모 프로그램</title>
     <style>
+        * { box-sizing: border-box; font-family: "Arial", sans-serif; }
         .memo_titles { margin-left: 20px; margin-bottom: 6px; }
         .memo_title_item { padding: 4px 8px; cursor: pointer; }
         .memo_title_item:hover { background-color: #f0f0f0; }
-        * { box-sizing: border-box; font-family: "Arial", sans-serif; }
         header { display: flex; justify-content: space-between; align-items: center; height: 40px; }
         header h1 { margin: 0; font-size: 30px; }
         header h1 a { text-decoration: none; color: #f44336; }
         .layout { display: flex; height: 100vh; }
         .left { width: 15%; background-color: #fff; border-right: 2px solid #bbb; padding: 5px; }
-        .user_info { margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; text-align: center; padding: 10px; }
+        .user_info { margin-bottom: 20px; border: 1px solid #ccc; border-radius: 8px; text-align: center; padding: 10px; text-decoration: none;}
         .category_header { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; font-weight: bold; }
-        .category_list { max-height: calc(100vh - 200px); overflow-y: auto; }
+        .category_list { max-height: calc(100vh - 200px); overflow-y: auto; max-height:calc(100vh-200px); overflow-y:auto; text-decoration: none;}
         .icon { margin-right: 5px; font-size: 18px; }
         .category_item { display: flex; align-items: center; width: 100%; padding: 8px 10px; margin-bottom: 6px; background-color: #eee; border-radius: 6px; cursor: pointer; }
         .category_item:hover, .category_item.selected { background-color: #ddd; }
-        .memo_list_container { padding-left: 20px; }
-        .memo_item { padding: 4px 8px; cursor: pointer; border-radius: 4px; margin-top: 4px; }
-        .memo_item:hover { background-color: #f0f0f0; }
+        .memo_list_container { padding-left: 20px; max-height:calc(100vh-300px); overflow-y:auto; padding-left:0;}
+        .memo_item { padding: 4px 8px; cursor: pointer; border-radius: 4px; margin-top: 4px; margin-bottom:4px; display: block; width:100%; padding:6px 10px; background-color: #f9f9f9;
+                    border-radius:6px; text-decoration:none; color:#333;}
+        .memo_item:hover { background-color: #eee }
         .memo_date { font-size: 0.8em; color: #777; margin-left: 8px; }
         .center { width: 70%; background-color: #fff8dc; display: flex; flex-direction: column; padding: 20px; }
         .note_header { display: flex; align-items: center; justify-content: space-between; background-color: #ffff88; padding: 10px; border-radius: 8px 8px 0 0; }
@@ -72,7 +75,7 @@
         .note_body { flex: 1; padding: 20px; overflow-y: auto; border-right: 1px solid #ddd; border-left: 1px solid #ddd; }
         .note_body textarea { width: 100%; height: 100%; resize: none; border: none; outline: none; background-color: transparent; }
         .note_footer { position: relative; padding: 10px; background-color: #ffff88; border-radius: 0 0 8px 8px; display: flex; justify-content: center; align-items: center; }
-        .arrow_group { position: absolute; left: 10px; }
+        .memo_time{position:absolute; left:10px; top:50%; transform: translateY(-50%); margin:0; font-size:0.85em; color:#777;}
         .file_attachment { position: absolute; right: 10px; }
         .right { width: 15%; background-color: #fff; border-left: 2px solid #bbb; padding: 5px; display: flex; flex-direction: column; gap: 8px; }
         .right button { width: 100%; margin-top: 10px; margin-bottom: 10px; padding: 12px; border: none; border-radius: 8px; cursor: pointer; text-align: center; height: 48px; }
@@ -96,7 +99,7 @@
     <div class="layout" id="mainLayout">
         <div class="left">
             <div class="user_info">
-                <h3><a href="#">👤사용자 정보</a></h3>
+                <h3><a href="auth.jsp" style="text-decoration: none;">👤사용자 정보</a></h3>
                 <div class="user_nickname"><%= nickname %>님, 환영합니다!</div>
             </div>
             <div class="left_panel_content">
@@ -110,15 +113,14 @@
                         </form>
                     </div>
                     <div class="category_list">
-                        <%-- ### 2. 카테고리 목록 DB에서 불러와 표시 ### --%>
                         <%
                             for (String[] category : categoryList) {
                                 String listIdx = category[0];
                                 String listName = category[1];
-                                String memoCount = category[2]; // 메모 개수 변수
+                                String memoCount = category[2];
                                 String selectedClass = (selectedCategoryId_str != null && listIdx.equals(selectedCategoryId_str)) ? "selected" : "";
                         %>
-                                <a href="login_success.jsp?categoryId=<%= listIdx %>" class="category_item <%= selectedClass %>">
+                                <a href="login_success.jsp?categoryId=<%= listIdx %>" class="category_item <%= selectedClass %>" style="text-decoration: none;>
                                     <span class="category_name">
                                         <span class="icon">📂</span>
                                         <span><%= listName %></span>
@@ -132,73 +134,89 @@
 
                     <%-- ### 3. 메모 목록 DB에서 불러와 표시 ### --%>
                     <%
-                        if (selectedCategoryId_str != null) {
+                    if (selectedCategoryId_str != null) {
                     %>
-                        <div class="memo_list_container">
-                            <h4>메모 목록</h4>
+                    <div class="memo_list_container">
+                        <h4>메모 목록</h4>
                     <%
-                     		try {
-                                String memoSql = "SELECT idx, title, is_important FROM memo WHERE list_idx = ? ORDER BY created_at DESC";
-                                pstmt = con.prepareStatement(memoSql);
-                                pstmt.setInt(1, Integer.parseInt(selectedCategoryId_str));
-                                rs = pstmt.executeQuery();
-                                while (rs.next()) {
-                                    String importantMark = "Y".equals(rs.getString("is_important")) ? "⭐" : "";
-                                    int memoId = rs.getInt("idx");
-                                    String selectedMemoClass = (selectedMemoId_str != null && memoId == Integer.parseInt(selectedMemoId_str)) ? "selected" : "";
+                    try {
+                        Class.forName("org.mariadb.jdbc.Driver");
+                        try (
+                            Connection con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/memodb", "admin", "1234");
+                            PreparedStatement pstmt = con.prepareStatement("SELECT idx, title, is_important FROM memo WHERE list_idx = ? ORDER BY idx DESC")
+                            ) {
+                                pstmt.setInt(1, Integer.parseInt(selectedCategoryId_str));               
+                                try (ResultSet rs = pstmt.executeQuery()) {
+                                    if (!rs.isBeforeFirst()) { // 결과가 없는 경우
+                                    out.println("<div style='color: #888; padding: 5px 10px;'>메모가 없습니다.</div>");
+                                } else {
+                                    while (rs.next()) {
+                                        String importantMark = "Y".equals(rs.getString("is_important")) ? "⭐" : "";
+                                        int memoId = rs.getInt("idx");
+                                        String selectedMemoClass = (selectedMemoId_str != null && memoId == Integer.parseInt(selectedMemoId_str)) ? "selected" : "";
                     %>
-                                    <div class="memo_item <%= selectedMemoClass %>" onclick="location.href='login_success.jsp?categoryId=<%=selectedCategoryId_str%>&memoId=<%=memoId%>'">
-                                        <%= importantMark %> <%= rs.getString("title") %>
-                                    </div>
+                    <a href="login_success.jsp?categoryId=<%=selectedCategoryId_str%>&memoId=<%=memoId%>" class="memo_item <%= selectedMemoClass %>">
+                    <%= importantMark %> <%= rs.getString("title") %>
+                    </a>
                     <%
+                        
+                                    }
                                 }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                out.println("메모 목록을 불러오는 중 오류.");
-                            } finally {
-                                if (rs != null) try { rs.close(); } catch (Exception e) {}
-                                if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}                              
                             }
+                        }    
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        out.println("<div style='color:red; padding-left:10px;'>메모 목록을 불러오는 중 오류가 발생했습니다.</div>");
+                    }
                     %>
-                        </div>
-                    <%}%>
+                </div>
+                <%
+                }
+                %>
                 </div>
             </div>
         </div>
-        
         <%-- ### 4. 메모 내용 표시 ### --%>
         <%
-            String memoTitle = "";
-            String memoContent = "";
-            String memoIsImportant = "N";
-            String memoBackgroundColor = "default";
-            String memoFileName = "";
-            
-            if (selectedMemoId_str != null) {
-                try {
-                    String sql = "SELECT * FROM memo WHERE idx = ?";
-                    pstmt = con.prepareStatement(sql);
-                    pstmt.setInt(1, Integer.parseInt(selectedMemoId_str));
-                    rs = pstmt.executeQuery();
+    String memoTitle = "";
+    String memoContent = "";
+    String memoIsImportant = "N";
+    String memoBackgroundColor = "default";
+    String memoFileName = "";
+    String memoCreatedAt = null;
+
+    if (selectedMemoId_str != null) {
+        try {
+            Class.forName("org.mariadb.jdbc.Driver");
+            try (
+                Connection con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/memodb", "admin", "1234");
+                PreparedStatement pstmt = con.prepareStatement("SELECT * FROM memo WHERE idx = ?")
+            ) {
+                pstmt.setInt(1, Integer.parseInt(selectedMemoId_str));
+                try (ResultSet rs = pstmt.executeQuery()) {
                     if (rs.next()) {
                         memoTitle = rs.getString("title");
                         memoContent = rs.getString("memo");
                         memoIsImportant = rs.getString("is_important");
                         memoBackgroundColor = rs.getString("backgroundColor");
-                        memoFileName = rs.getString("fileName");
+                        // DB의 fileName이 null일 경우를 대비한 코드
+                        String tempFileName = rs.getString("fileName");
+                        memoFileName = (tempFileName == null) ? "" : tempFileName;
+                        memoCreatedAt=rs.getString("created_at");
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
-                    if (rs != null) try { rs.close(); } catch (Exception e) {}
-                    if (pstmt != null) try { pstmt.close(); } catch (Exception e) {}
-                    if (con != null) try { con.close(); } catch (Exception e) {}
                 }
             }
-        %>
-        
+        } catch (Exception e) {
+            e.printStackTrace();
+            // out.println("메모 상세 정보를 불러오는 중 오류");
+        }
+    }
+%>
+<%
+    boolean isEdit = (selectedMemoId_str != null && !selectedMemoId_str.isEmpty());
+%>
         <form name="memoForm" id="memoForm" class="center" action="add_memo_proc.jsp" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="list_idx" id="selectedListIdx">
+            <!--<input type="hidden" name="list_idx" id="selectedListIdx">-->
             <input type="hidden" name="memoIdx" id="memoIdx" value="<%= selectedMemoId_str != null ? selectedMemoId_str : "" %>">
             <div class="note_header">
                 <input type="text" name="title" class="title_input" placeholder="제목을 입력하세요" value="<%= memoTitle %>">
@@ -216,38 +234,34 @@
                     </select>
                 </label>
                 <label>카테고리:
-                 <select name="list_idx" id="categorySelect">
-                     <%
-                         if (categoryList.isEmpty()) {
-                     %>
-                             <option value="">카테고리를 만들어주세요</option>
-                     <%
-                         } else {
-                             for (String[] category : categoryList) {
-                     %>
-                                 <option value="<%= category[0] %>"><%= category[1] %> (<%= category[2] %>)</option>
-                     <%
-                             }
-                         }
-                     %>
-                 </select>
-             </label>
+                    <select id="categorySelect" name="<%= isEdit ? "" : "list_idx" %>"<%= isEdit ? "disabled" : "" %>>
+                        <%
+                        for(String[] cat: categoryList){
+                            String idx=cat[0], name=cat[1];
+                            String sel = idx.equals(selectedCategoryId_str) ? "selected" : "";
+                            %>
+                            <option value="<%=idx%>" <%=sel%>><%=name%> (<%=cat[2]%>)</option>
+                            <%
+                        }
+                        %>
+                    </select>
+                </label>
             </div>
             <div class="note_body">
                 <textarea name="memo" placeholder="메모 내용을 입력하세요..."><%= memoContent %></textarea>
             </div>
             <div class="note_footer">
-                <div class="arrow_group">
-                    <button type="button">⬅️</button><span>1/1</span><button type="button">➡️</button>
-                </div>
+                <span class="memo_time">
+                    메모 저장시간: <%= memoCreatedAt != null ? memoCreatedAt : "null" %>
+                </span>
                 <div class="file_attachment">
-                    <label for="fileInput">첨부 그림:</label>
+                    <label for="fileInput">&nbsp;&nbsp;첨부 그림:</label>
                     <input type="file" name="fileName" id="fileInput">
                     <% if (memoFileName != null && !memoFileName.isEmpty()) { %>
-                        <span id="currentFileName">(현재 파일: <%= memoFileName %>)</span>
-                    <% } %>
+                    <span id="currentFileName">(현재 파일: <%= memoFileName %>)</span>
+                        <% } %>
+                    </div>
                 </div>
-            </div>
         </form>
         <div class="right">
             <button class="home_btn" onclick="location.href='login_success.jsp'">🏠 홈</button>
@@ -260,49 +274,64 @@
             </div>
         </div>
     </div>
-    <div id="categorySelectOverlay" class="category-select-overlay">저장할 카테고리를 선택하세요</div>
-
+    <!--<div id="categorySelectOverlay" class="category-select-overlay">저장할 카테고리를 선택하세요</div>-->
 <script>
-    // 전역 변수로 현재 상태를 관리
-
-    // 카테고리 추가 버튼 이벤트
-    document.addEventListener('DOMContentLoaded', function() {
-        const addBtn = document.getElementById('addCategoryBtn');
-        addBtn.addEventListener('click', function() {
-            const name = prompt("추가할 새 카테고리의 이름을 입력하세요:");
-            if (name && name.trim() !== "") {
-                document.getElementById('categoryNameInput').value = name;
-                document.categoryForm.submit();
-            } else if (name !== null) {
-                alert("카테고리 이름이 입력되지 않았습니다.");
-            }
-        });
+document.addEventListener('DOMContentLoaded', function() {
+  // 1) 카테고리 추가
+document.getElementById('addCategoryBtn')
+    .addEventListener('click', function() {
+        const name = prompt("추가할 새 카테고리의 이름을 입력하세요:");
+        if (name && name.trim()) {
+            document.getElementById('categoryNameInput').value = name;
+            document.categoryForm.submit();
+        } else if (name !== null) {
+            alert("카테고리 이름이 입력되지 않았습니다.");
+        }
     });
 
-    // 메모 추가 버튼 이벤트
-    // login_success.jsp의 <script> 태그 안
-// ...
+  // 2) 새 메모 저장
+document.getElementById('addMemoBtn')
+    .addEventListener('click', function() {
+        const form    = document.getElementById('memoForm');
+        const title   = form.title.value.trim();
+        const content = form.memo.value.trim();
+        const cat     = form.elements['list_idx'].value;
 
-// 메모 추가 로직
-document.getElementById('addMemoBtn').addEventListener('click', function() {
-    // 1. memoForm을 가져옵니다.
-    const form = document.forms.memoForm;
+        if (!cat) {
+            alert("카테고리를 선택하세요.");
+            return;
+        }
+        if (!title || !content) {
+            alert("제목과 내용을 모두 입력해주세요.");
+            return;
+        }
+        form.submit();
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function(){
+    const addBtn  = document.getElementById('addMemoBtn');
+    const updBtn  = document.getElementById('updateMemoBtn');
+    const memoIdx=document.getElementById("memoIdx").value;
+    if (memoIdx) {
+        addBtn.style.display = 'none';
+        updBtn.style.display = 'block';
+    }else{
+        addBtn.style.display = 'block';
+        updBtn.style.display = 'none';
+    }
+  // 저장·수정 공통 검증
+function submitForm(){
+    const form = document.getElementById("memoForm");
     const title = form.title.value.trim();
     const content = form.memo.value.trim();
-    const categorySelect = form.list_idx;
-
-    // 2. 유효성 검사 (카테고리 선택 여부, 제목/내용 입력 여부)
-    if (categorySelect.value === "") {
-        alert("저장할 카테고리가 없습니다. 카테고리를 먼저 만들어주세요.");
-        return;
-    }
-    if (title === "" || content === "") {
-        alert("제목과 내용을 먼저 입력해주세요.");
-        return;
-    }
-
-    // 3. 모든 조건이 만족하면 form을 action에 지정된 "add_memo_proc.jsp"로 제출합니다.
+    const cat = form.elements['list_idx'].value;
+    if (!cat){ alert("카테고리를 선택하세요."); return; }
+    if (!title||!content){ alert("제목과 내용을 모두 입력해주세요."); return; }
     form.submit();
+    }
+    addBtn.addEventListener('click', submitForm);
+    updBtn.addEventListener('click', submitForm);
 });
 </script>
 </body>
