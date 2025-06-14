@@ -1,7 +1,6 @@
 <%@ page import="java.sql.*, java.text.SimpleDateFormat,java.util.ArrayList, java.util.List, java.util.stream.Collectors" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%
-out.println("<p>QueryString=" + request.getQueryString() + "</p>");
 // 1. 세션 check 및 초기 변수 선언
 if (session.getAttribute("userId") == null) { //혹시 모를 버그대비
     response.sendRedirect("login.jsp");
@@ -460,8 +459,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 });
-
-console.log("DEBUG search=", "<%=search%>");
 </script>
 </body>
 </html>
