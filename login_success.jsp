@@ -1,20 +1,18 @@
 <%@ page import="java.sql.*, java.text.SimpleDateFormat,java.util.ArrayList, java.util.List, java.util.stream.Collectors" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%
-    // 1. 기본 정보 및 파라미터 가져오기
-    if (session.getAttribute("userId") == null) { //혹시 모를 버그대비
-        response.sendRedirect("login.jsp");
-        return;
-    }
-    String nickname = (String) session.getAttribute("nickname");
-    Integer memberIdx = (Integer) session.getAttribute("memberIdx");
-    String selectedCategoryId_str = request.getParameter("categoryId");
-    String selectedMemoId_str = request.getParameter("memoId");
-    
-    //카테고리 정보 가져오기
+// 1. 세션 check 및 초기 변수 선언
+if (session.getAttribute("userId") == null) { //혹시 모를 버그대비
+    response.sendRedirect("login.jsp");
+    return;
+}
+String nickname = (String) session.getAttribute("nickname");
+Integer memberIdx = (Integer) session.getAttribute("memberIdx");
+String selectedCategoryId_str = request.getParameter("categoryId");
+String selectedMemoId_str = request.getParameter("memoId");
+//카테고리 정보 가져오기
 List<String[]> categoryList = new ArrayList<>();
 int categoryCount=0;
-
 String sql =
     "SELECT l.idx, l.listName, COUNT(m.idx) AS memo_count " +
     "FROM list AS l " +
@@ -22,7 +20,6 @@ String sql =
     "WHERE l.member_idx = ? " +
     "GROUP BY l.idx, l.listName " +
     "ORDER BY l.listName";
-
 try (
     Connection con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/memodb","admin","1234");
     PreparedStatement pstmt = con.prepareStatement(sql)
@@ -42,10 +39,10 @@ try (
 } catch (Exception e) {
     e.printStackTrace();
 }
-
+//3.JS에 쓸 기존 이름 배열 생성
 String existingNamesJs = categoryList.stream()
-        .map(cat -> "\"" + cat[1].replace("\"","\\\"") + "\"")
-        .collect(Collectors.joining(","));
+    .map(cat -> "\"" + cat[1].replace("\"","\\\"") + "\"")
+    .collect(Collectors.joining(","));
 %>
 <!DOCTYPE html>
 <html lang="ko">
@@ -394,11 +391,13 @@ const existingCategoryNames = [ <%= existingNamesJs %> ];
             + "&newName=" + encodeURIComponent(newName);
         };
 
+        // ── 삭제 클릭 핸들러 ──
         document.getElementById('deleteCategory').onclick = function(){
-          if (!confirm("정말 삭제하시겠습니까?")) return;
-          window.location.href = "deleteCategory.jsp?listIdx=" + selId;
+            if (!confirm("이 카테고리와 그 안의 모든 메모를 정말 삭제하시겠습니까?")) return;
+            // listIdx 파라미터만 넘기면, 서버 쪽에서 메모 먼저 지우고 카테고리 지웁니다
+            window.location.href = "deleteCategory.jsp?listIdx=" + selId;
         };
-      });
+    });
 </script>
 </body>
 </html>
