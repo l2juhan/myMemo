@@ -1,4 +1,4 @@
-<%@ page import="java.sql.*, java.text.SimpleDateFormat,java.util.ArrayList, java.util.List" %>
+<%@ page import="java.sql.*, java.text.SimpleDateFormat,java.util.ArrayList, java.util.List, java.util.stream.Collectors" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%
     // 1. 기본 정보 및 파라미터 가져오기
@@ -42,6 +42,10 @@ try (
 } catch (Exception e) {
     e.printStackTrace();
 }
+
+String existingNamesJs = categoryList.stream()
+        .map(cat -> "\"" + cat[1].replace("\"","\\\"") + "\"")
+        .collect(Collectors.joining(","));
 %>
 <!DOCTYPE html>
 <html lang="ko">
@@ -113,24 +117,30 @@ try (
                         </form>
                     </div>
                     <div class="category_list">
-                        <%
-                            for (String[] category : categoryList) {
-                                String listIdx = category[0];
-                                String listName = category[1];
-                                String memoCount = category[2];
-                                String selectedClass = (selectedCategoryId_str != null && listIdx.equals(selectedCategoryId_str)) ? "selected" : "";
-                        %>
-                                <a href="login_success.jsp?categoryId=<%= listIdx %>" class="category_item <%= selectedClass %>" style="text-decoration: none;>
-                                    <span class="category_name">
-                                        <span class="icon">📂</span>
-                                        <span><%= listName %></span>
-                                    </span>
-                                    <span class="memo_count">(<%= memoCount %>)</span>
-                                </a>
-                        <%
-                            }
-                        %>
-                    </div>
+                        <div id="categoryMenu" style="
+                            display:none; position:absolute;
+                            border:1px solid #ccc; background:#fff;
+                            z-index:1000;">
+                            <div id="editCategory" style="padding:4px;cursor:pointer;">✏️ 수정</div>
+                            <div id="deleteCategory" style="padding:4px;cursor:pointer;">🗑️ 삭제</div>
+                        </div>
+
+        <% for (String[] category : categoryList) {
+            String listIdx  = category[0];
+            String listName = category[1];
+            String memoCount= category[2];
+            String selClass = (listIdx.equals(selectedCategoryId_str))?"selected":"";
+        %>
+            <a href="login_success.jsp?categoryId=<%=listIdx%>"
+            class="category_item <%=selClass%>"
+            data-id="<%=listIdx%>"
+            data-name="<%=listName%>"
+            style="text-decoration:none;">
+            📂 <%=listName%> (<%=memoCount%>)
+            </a>
+        <% } %>
+                </div>
+                    
 
                     <%-- ### 3. 메모 목록 DB에서 불러와 표시 ### --%>
                     <%
@@ -157,6 +167,7 @@ try (
                                         String title = rs.getString("title");
                                         String createdAt = rs.getString("created_at");
                     %>
+                    <!--카테고리 출력-->
                     <a href="login_success.jsp?categoryId=<%=selectedCategoryId_str%>&memoId=<%=memoId%>" class="memo_item <%= selectedMemoClass %>">
                     [#<%=memoId%>]<%= importantMark %> <%= rs.getString("title") %><br><%=createdAt%>
                     </a>
@@ -345,6 +356,49 @@ function submitForm(){
     addBtn.addEventListener('click', submitForm);
     updBtn.addEventListener('click', submitForm);
 });
+//카테고리 수정 및 삭제하기
+const existingCategoryNames = [ <%= existingNamesJs %> ];
+
+      document.addEventListener('DOMContentLoaded', function(){
+        const menu = document.getElementById('categoryMenu');
+        let selId, selName;
+
+        document.querySelectorAll('.category_item').forEach(item => {
+          item.oncontextmenu = function(e){
+            e.preventDefault();
+            selId   = this.getAttribute('data-id');
+            selName = this.getAttribute('data-name');
+            menu.style.left    = e.pageX + 'px';
+            menu.style.top     = e.pageY + 'px';
+            menu.style.display = 'block';
+            return false;
+          };
+        });
+
+        document.body.onclick = () => { menu.style.display = 'none'; };
+
+        document.getElementById('editCategory').onclick = function(){
+          let newName = prompt("카테고리 이름을 입력하세요", selName);
+          if (newName === null) return;
+          newName = newName.trim();
+          if (!newName) {
+            alert("카테고리 이름을 입력해주세요.");
+            return window.location.href = "login_success.jsp";
+          }
+          if (existingCategoryNames.includes(newName)) {
+            alert("이미 존재하는 카테고리명입니다.");
+            return window.location.href = "login_success.jsp";
+          }
+          window.location.href =
+            "updateCategoryName.jsp?listIdx=" + selId
+            + "&newName=" + encodeURIComponent(newName);
+        };
+
+        document.getElementById('deleteCategory').onclick = function(){
+          if (!confirm("정말 삭제하시겠습니까?")) return;
+          window.location.href = "deleteCategory.jsp?listIdx=" + selId;
+        };
+      });
 </script>
 </body>
 </html>
