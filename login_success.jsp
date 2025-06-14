@@ -1,6 +1,7 @@
 <%@ page import="java.sql.*, java.text.SimpleDateFormat,java.util.ArrayList, java.util.List, java.util.stream.Collectors" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%
+out.println("<p>QueryString=" + request.getQueryString() + "</p>");
 // 1. 세션 check 및 초기 변수 선언
 if (session.getAttribute("userId") == null) { //혹시 모를 버그대비
     response.sendRedirect("login.jsp");
@@ -10,6 +11,8 @@ String nickname = (String) session.getAttribute("nickname");
 Integer memberIdx = (Integer) session.getAttribute("memberIdx");
 String selectedCategoryId_str = request.getParameter("categoryId");
 String selectedMemoId_str = request.getParameter("memoId");
+String search = request.getParameter("search");
+out.println("<!-- DEBUG search=" + search + " , categoryId=" + selectedCategoryId_str + " -->");
 //카테고리 정보 가져오기
 List<String[]> categoryList = new ArrayList<>();
 int categoryCount=0;
@@ -89,16 +92,20 @@ String existingNamesJs = categoryList.stream()
     </style>
 </head>
 <body>
+    <!--===========================상단 레이아웃=============================-->
     <header>
         <h1><a href="login_success.jsp">myMemo</a></h1>
-        <div class="search_box">
-            <input type="text" placeholder="검색어를 입력하세요...">
-            <button>검색</button>
-        </div>
+        <form action="login_success.jsp" method="get" class="search_box">
+            <!-- 선택된 카테고리·메모를 유지하려면 아래처럼 hidden으로 추가 -->
+            <input type="hidden" name="categoryId" value="<%= selectedCategoryId_str != null ? selectedCategoryId_str : "" %>">
+            <input type="text" name="search" placeholder="검색어를 입력하세요"
+                value="<%= search %>">
+            <button type="submit">검색</button>
+        </form>
     </header>
     <hr style="margin:0">
     <div class="layout" id="mainLayout">
-        <!--=========왼쪽 레이아웃===============-->
+        <!--=======================왼쪽 레이아웃============================-->
         <div class="left">
             <!--유저 정보(누르면 'auth.jsp'로 이동)-->
             <div class="user_info">
@@ -142,10 +149,51 @@ String existingNamesJs = categoryList.stream()
                             <% } %>
                     </div>                   
                     <%--메모 목록 DB에서 불러와 표시--%>
+                    <% if (search != null && !search.trim().isEmpty()) { %>
+                        <!--1.검색 결과-->
+                    <div class="memo_list_container">
+                        <h4>🔍 검색 결과 (<%= search %>)</h4>
+                        <%
+                        String searchSql =
+                            "SELECT m.idx, m.title, m.is_important, m.created_at " +
+                            "FROM memo m " +
+                            "JOIN list l ON m.list_idx = l.idx " +
+                            "WHERE l.member_idx = ? AND m.title LIKE ? " +
+                            "ORDER BY m.idx DESC";
+                        try (
+                            Connection con = DriverManager.getConnection(
+                                "jdbc:mariadb://localhost:3306/memodb",
+                                "admin","1234");
+                            PreparedStatement p = con.prepareStatement(searchSql)
+                        ) {
+                            p.setInt(1, memberIdx);
+                            p.setString(2, "%" + search + "%");
+                            try (ResultSet rs = p.executeQuery()) {
+                                if (!rs.isBeforeFirst()) {
+                                    out.println("<div style='padding:8px;color:#888;'>검색 결과가 없습니다.</div>");
+                                } else {
+                                    while (rs.next()) {
+                                    int mid  = rs.getInt("idx");
+                                    String star = "Y".equals(rs.getString("is_important"))?"⭐":"";
+                        %>
+                        <a href="login_success.jsp?memoId=<%=mid%>"
+                            class="memo_item">
+                            <%= star %> <%= rs.getString("title") %>
+                            <span class="memo_date"><%= rs.getString("created_at") %></span>
+                        </a>
+                        <%
+                                    }
+                                }
+                            }
+                        } catch(Exception e){
+                            e.printStackTrace();
+                        }
+                        %>
+                    </div>
                     <%
-                    if (selectedCategoryId_str != null) {
+                    }else if (selectedCategoryId_str != null) {
                     %>
-                    <!--메모 목록 출력-->
+                    <!--2.메모 목록 출력-->
                     <div class="memo_list_container">
                         <h4>메모 목록</h4>
                         <%
@@ -318,10 +366,10 @@ document.getElementById('addCategoryBtn')
   // 2) 새 메모 저장
 document.getElementById('addMemoBtn')
     .addEventListener('click', function() {
-        const form    = document.getElementById('memoForm');
-        const title   = form.title.value.trim();
+        const form = document.getElementById('memoForm');
+        const title = form.title.value.trim();
         const content = form.memo.value.trim();
-        const cat     = form.elements['list_idx'].value;
+        const cat = form.elements['list_idx'].value;
 
         if (!cat) {
             alert("카테고리를 선택하세요.");
@@ -348,14 +396,14 @@ document.addEventListener('DOMContentLoaded', function(){
         updBtn.style.display = 'none';
     }
   // 저장·수정 공통 검증
-function submitForm(){
-    const form = document.getElementById("memoForm");
-    const title = form.title.value.trim();
-    const content = form.memo.value.trim();
-    const cat = form.elements['list_idx'].value;
-    if (!cat){ alert("카테고리를 선택하세요."); return; }
-    if (!title||!content){ alert("제목과 내용을 모두 입력해주세요."); return; }
-    form.submit();
+    function submitForm(){
+        const form = document.getElementById("memoForm");
+        const title = form.title.value.trim();
+        const content = form.memo.value.trim();
+        const cat = form.elements['list_idx'].value;
+        if (!cat){ alert("카테고리를 선택하세요."); return; }
+        if (!title||!content){ alert("제목과 내용을 모두 입력해주세요."); return; }
+        form.submit();
     }
     addBtn.addEventListener('click', submitForm);
     updBtn.addEventListener('click', submitForm);
@@ -412,6 +460,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 });
+
+console.log("DEBUG search=", "<%=search%>");
 </script>
 </body>
 </html>
