@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
+	<!--=============================회원가입 창==============================-->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -9,76 +10,18 @@
 	* {        
         font-family: "Arial", sans-serif;
     }
-	header {
-		box-sizing: border-box;
-        background-color: #ffffff;
-        border-bottom: 1px solid #cccccc;
-        padding: 10px 20px;
-		
-    }
-	.nav-left a{
-        font-weight: bold;
-        font-size: 25px;
-        color: #d11;
-        display: flex;
-        align-items: center;
-		text-decoration: none;
-        }
-    body {
-    	background: #ffffff;
-    	margin:0;
-		padding:0;
-    }
-    .signup-container {
-    	max-width: 400px;
-    	margin: 100px auto;
-    	background: #fff;
-    	padding: 20px;
-    }
-    .signup-container h1 {
-    	text-align: center;
-    	margin-bottom: 16px;
-    }
-    .signup-container p {
-    	font-size: 14px;
-    	color: #555;
-    	line-height: 1.4;
-    	margin-bottom: 12px;
-    }
-    .signup-container a {
-    	color: #0066cc;
-    	text-decoration: none;
-    }
-    .signup-container .form-group {
-    	margin-bottom: 12px;
-    }
-    .signup-container label {
-    	display: block;
-    	margin-bottom: 4px;
-    	font-weight: bold;
-    	font-size: 14px;
-    }
-    .signup-container input {
-    	width: 100%;
-    	padding: 8px;
-    	box-sizing: border-box;
-    	border: 1px solid #ccc;
-    	border-radius: 4px;
-    	font-size: 14px;
-    }
-    .signup-container button {
-    	width: 100%;
-    	padding: 10px;
-    	background: #007bff;
-    	color: #fff;
-    	border: none;
-    	border-radius: 4px;
-    	font-size: 16px;
-    	cursor: pointer;
-    }
-    .signup-container button:hover {
-    	background: #1593ce;
-    }
+	header { box-sizing: border-box; background-color: #ffffff; border-bottom: 1px solid #cccccc; padding: 10px 20px; }
+	.nav-left a { font-weight: bold; font-size: 25px; color: #d11; display: flex; align-items: center; text-decoration: none; }
+    body { background: #ffffff; margin:0; padding:0; }
+    .signup-container { max-width: 400px; margin: 100px auto; background: #fff; padding: 20px; }
+    .signup-container h1 { text-align: center; margin-bottom: 16px; }
+    .signup-container p { font-size: 14px; color: #555; line-height: 1.4; margin-bottom: 12px; }
+    .signup-container a { color: #0066cc; text-decoration: none; }
+    .signup-container .form-group { margin-bottom: 12px; }
+    .signup-container label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 14px; }
+    .signup-container input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .signup-container button { width: 100%; padding: 10px; background: #007bff; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+    .signup-container button:hover { background: #1593ce; }
 	</style>
 </head>
 <body>
