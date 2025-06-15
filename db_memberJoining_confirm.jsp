@@ -1,5 +1,6 @@
 <%@ page import="java.sql.*" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<!--===============================회원가입 확인 절차====================================-->
 <%
     request.setCharacterEncoding("UTF-8");
     String userId=request.getParameter("userId");
@@ -18,7 +19,6 @@
 <%
     return;    
     }
-
     Connection con = null;
     PreparedStatement pstmt = null;
     ResultSet rs = null;
@@ -43,7 +43,6 @@
         if (rs.next()) {
             String existingId = rs.getString("userId");
             String existingEmail = rs.getString("email");
-
             if (existingId.equals(userId)) {
 %>
 <script>
@@ -78,14 +77,14 @@
                 session.setAttribute("password",password);
 %>
 <script>
-    alert("회원가입이 완료되었습니다!");
+    alert("회원가입이 완료되었습니다.");
     window.location.href = "login_success.jsp";
 </script>
 <%
             } else {
 %>
 <script>
-    alert("회원가입 실패...ㅜㅜ 다시 시도해주세요.");
+    alert("헉!!!회원가입 실패... 다시 시도해주세요.");
     window.location.href = "index.jsp";
 </script>
 <%
@@ -94,7 +93,7 @@
     } catch (Exception e) {
 %>
 <script>
-    alert("에러 발생..!!: <%= e.getMessage() %>");
+    alert("헉!!!에러 발생.: <%= e.getMessage() %>");
     window.location.href = "index.jsp";
 </script>
 <%
