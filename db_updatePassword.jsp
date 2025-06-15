@@ -1,6 +1,7 @@
 <%@ page import="java.sql.*, java.util.regex.Pattern" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8"
     pageEncoding="UTF-8"%>
+    <!--==============================비밀번호 수정 및 업데이트를 위한 jsp코드=================================-->
 <%
     request.setCharacterEncoding("UTF-8");
     String userId    = (String)session.getAttribute("userId");
