@@ -1,11 +1,12 @@
 <%@ page import="java.sql.*" %>
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%
     request.setCharacterEncoding("UTF-8");
     String userId    = (String)session.getAttribute("userId");
     String newNick   = request.getParameter("userName");
     String newAff    = request.getParameter("affiliation");
 
-    // 1) 기존 값 조회
+    //기존 값 조회
     String currNick = "", currAff = "";
     Class.forName("org.mariadb.jdbc.Driver");
     try (Connection con = DriverManager.getConnection(
@@ -21,13 +22,13 @@
             }
         }
 
-        // 2) 변경사항 없으면
+        //변경사항 없으면
         if (newNick.equals(currNick) && newAff.equals(currAff)) {
             out.println("<script>alert('변경할 내용이 없습니다.'); location.href='auth.jsp';</script>");
             return;
         }
 
-        // 3) UPDATE
+        //업데이트
         try (PreparedStatement up = con.prepareStatement(
             "UPDATE member SET userNickname=?, affiliation=? WHERE userId=?")
         ) {
