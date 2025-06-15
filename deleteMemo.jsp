@@ -1,4 +1,5 @@
 <%@ page import="java.sql.*" %>
+<!--저장된 메모 삭제를 위한 jsp코드-->
 <%
 String memoIdx = request.getParameter("memoIdx");
 
@@ -16,6 +17,6 @@ if (memoIdx != null) {
         e.printStackTrace();
     }
 }
-// 삭제 후 홈으로 이동
+//삭제 후 홈으로 이동
 response.sendRedirect("login_success.jsp");
 %>
